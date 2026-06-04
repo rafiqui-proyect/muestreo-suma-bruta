@@ -137,6 +137,8 @@ function switchView(viewName, btnElement) {
 
 // Keypad Actions: Leaf Symptoms (II, III, IV)
 function openLeafKeypad(plantIndex, col) {
+    const prevPlantIndex = activeCell ? activeCell.plantIndex : null;
+
     // Clear active selections
     clearActiveHighlight();
     
@@ -154,21 +156,28 @@ function openLeafKeypad(plantIndex, col) {
     document.getElementById("leaf-keypad-sheet").classList.add("open");
     document.getElementById("candela-keypad-sheet").classList.remove("open");
 
-    // Expand view padding and scroll row to center
+    // Expand view padding and scroll row to center only if moving to a new plant row
     const viewContainer = document.getElementById("view-toma-datos");
+    const isKeyboardAlreadyActive = viewContainer && viewContainer.classList.contains("keyboard-active");
     if (viewContainer) {
         viewContainer.classList.add("keyboard-active");
     }
-    setTimeout(() => {
-        const activeRow = document.getElementById(`plant-row-${plantIndex}`);
-        if (activeRow) {
-            activeRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }, 80);
+    
+    const shouldScroll = !isKeyboardAlreadyActive || prevPlantIndex !== plantIndex;
+    if (shouldScroll) {
+        setTimeout(() => {
+            const activeRow = document.getElementById(`plant-row-${plantIndex}`);
+            if (activeRow) {
+                activeRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 80);
+    }
 }
 
 // Keypad Actions: Candela (Brun Scale)
 function openCandelaKeypad(plantIndex, col) {
+    const prevPlantIndex = activeCell ? activeCell.plantIndex : null;
+
     clearActiveHighlight();
     
     activeCell = { plantIndex, col };
@@ -181,17 +190,22 @@ function openCandelaKeypad(plantIndex, col) {
     document.getElementById("candela-keypad-sheet").classList.add("open");
     document.getElementById("leaf-keypad-sheet").classList.remove("open");
 
-    // Expand view padding and scroll row to center
+    // Expand view padding and scroll row to center only if moving to a new plant row
     const viewContainer = document.getElementById("view-toma-datos");
+    const isKeyboardAlreadyActive = viewContainer && viewContainer.classList.contains("keyboard-active");
     if (viewContainer) {
         viewContainer.classList.add("keyboard-active");
     }
-    setTimeout(() => {
-        const activeRow = document.getElementById(`plant-row-${plantIndex}`);
-        if (activeRow) {
-            activeRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }, 80);
+    
+    const shouldScroll = !isKeyboardAlreadyActive || prevPlantIndex !== plantIndex;
+    if (shouldScroll) {
+        setTimeout(() => {
+            const activeRow = document.getElementById(`plant-row-${plantIndex}`);
+            if (activeRow) {
+                activeRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 80);
+    }
 }
 
 function closeKeypad() {
