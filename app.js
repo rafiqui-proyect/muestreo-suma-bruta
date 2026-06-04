@@ -182,6 +182,32 @@ function clearActiveHighlight() {
     document.querySelectorAll(".input-cell").forEach(cell => cell.classList.remove("active-cell"));
 }
 
+// Helper to determine symptom traffic-light class based on leaf column and value
+function getSymptomClassForLeaf(col, val) {
+    if (!val || val === '-' || val === '') return '';
+    if (val === '0') return 'symptom-low'; // Green
+    
+    if (col === 'h2' || col === 'h3') {
+        return 'symptom-high'; // Red (any symptom is high/critical on H2 and H3)
+    }
+    
+    if (col === 'h4') {
+        if (['2+', '3-', '3+', '4-', '4+', '5-', '5+'].includes(val)) {
+            return 'symptom-high'; // Red for 2+ or higher
+        }
+        return 'symptom-mid'; // Yellow for 1-, 1+, 2-
+    }
+    
+    if (col === 'h5') {
+        if (['3-', '3+', '4-', '4+', '5-', '5+'].includes(val)) {
+            return 'symptom-high'; // Red for 3- or higher
+        }
+        return 'symptom-mid'; // Yellow for 1- to 2+
+    }
+    
+    return '';
+}
+
 // Handle symptom input
 function inputSymptom(val) {
     if (!activeCell) return;
@@ -195,12 +221,9 @@ function inputSymptom(val) {
     
     // Clear old state classes and set new ones
     cellEl.className = "input-cell has-val";
-    if (val === '0') {
-        cellEl.classList.add("symptom-low");
-    } else if (['1-', '1+', '2-', '2+'].includes(val)) {
-        cellEl.classList.add("symptom-mid");
-    } else {
-        cellEl.classList.add("symptom-high");
+    const colorClass = getSymptomClassForLeaf(col, val);
+    if (colorClass) {
+        cellEl.classList.add(colorClass);
     }
 
     // Calculate Suma Bruta for Row
@@ -289,12 +312,14 @@ function calculateTotals() {
     let totalCandela = 0.0;
     let validCandelaPlants = 0;
 
-    // Leaf 2 and Leaf 3 specific calculations
+    // Leaf 2, 3, and 4 specific calculations
     let plantsWithH2Symptom = 0;
     let plantsWithH3Symptom = 0;
     let totalH3Coef = 0.0;
     let evaluatedH3Plants = 0;
     let hasH3Necrosis = false;
+    let plantsWithH4HighSymptom = 0; // 2+ or higher
+    let plantsWithH4LowSymptom = 0;  // 1-, 1+, 2-
 
     plantData.forEach(row => {
         // Suma Bruta calculation
@@ -320,7 +345,7 @@ function calculateTotals() {
             }
         }
 
-        // Leaf 3 symptom, severity, and necrosis detection
+        // Leaf 3 symptom detection
         if (row.h3 !== "") {
             evaluatedH3Plants++;
             const h3Coef = COEFFICIENTS[row.h3] || 0.0;
@@ -330,6 +355,15 @@ function calculateTotals() {
             }
             if (['4-', '4+', '5-', '5+'].includes(row.h3)) {
                 hasH3Necrosis = true;
+            }
+        }
+
+        // Leaf 4 symptom detection
+        if (row.h4 !== "" && row.h4 !== "0") {
+            if (['2+', '3-', '3+', '4-', '4+', '5-', '5+'].includes(row.h4)) {
+                plantsWithH4HighSymptom++;
+            } else {
+                plantsWithH4LowSymptom++;
             }
         }
     });
@@ -347,11 +381,14 @@ function calculateTotals() {
     if (plantsWithH2Symptom > 0) {
         h3Status = "CRÍTICO HOJA II";
         h3Class = "critical";
-    } else if (h3Severity >= 1.5) {
-        h3Status = "DISPARO FUMIGACIÓN";
+    } else if (plantsWithH3Symptom > 0) {
+        h3Status = "DISPARO HOJA III";
         h3Class = "danger";
-    } else if (hasH3Necrosis || h3Incidence >= 10.0) {
-        h3Status = "PREAVISO HOJA III";
+    } else if (plantsWithH4HighSymptom > 0) {
+        h3Status = "DISPARO HOJA IV";
+        h3Class = "danger";
+    } else if (plantsWithH4LowSymptom > 0) {
+        h3Status = "PREAVISO HOJA IV";
         h3Class = "warning";
     }
 
@@ -456,6 +493,8 @@ function saveCurrentMuestreo() {
     let totalH3Coef = 0.0;
     let evaluatedH3Plants = 0;
     let hasH3Necrosis = false;
+    let plantsWithH4HighSymptom = 0;
+    let plantsWithH4LowSymptom = 0;
 
     plantData.forEach(row => {
         if (row.h2 !== "" && row.h2 !== "0") {
@@ -472,6 +511,13 @@ function saveCurrentMuestreo() {
                 hasH3Necrosis = true;
             }
         }
+        if (row.h4 !== "" && row.h4 !== "0") {
+            if (['2+', '3-', '3+', '4-', '4+', '5-', '5+'].includes(row.h4)) {
+                plantsWithH4HighSymptom++;
+            } else {
+                plantsWithH4LowSymptom++;
+            }
+        }
     });
 
     const h3Incidence = evaluatedH3Plants > 0 ? (plantsWithH3Symptom / evaluatedH3Plants) * 100 : 0.0;
@@ -480,10 +526,12 @@ function saveCurrentMuestreo() {
     let h3Status = "OK";
     if (plantsWithH2Symptom > 0) {
         h3Status = "CRÍTICO HOJA II";
-    } else if (h3Severity >= 1.5) {
-        h3Status = "DISPARO FUMIGACIÓN";
-    } else if (hasH3Necrosis || h3Incidence >= 10.0) {
-        h3Status = "PREAVISO HOJA III";
+    } else if (plantsWithH3Symptom > 0) {
+        h3Status = "DISPARO HOJA III";
+    } else if (plantsWithH4HighSymptom > 0) {
+        h3Status = "DISPARO HOJA IV";
+    } else if (plantsWithH4LowSymptom > 0) {
+        h3Status = "PREAVISO HOJA IV";
     }
 
     // Construct Muestreo Object
@@ -669,17 +717,10 @@ function openDetailsModal(index) {
         }
 
         // Determine classes for each leaf symptom
-        const getSymptomClass = (val) => {
-            if (!val || val === '-' || val === '') return '';
-            if (val === '0') return 'input-cell symptom-low';
-            if (['1-', '1+', '2-', '2+'].includes(val)) return 'input-cell symptom-mid';
-            return 'input-cell symptom-high';
-        };
-
-        const h2Style = getSymptomClass(p.h2);
-        const h3Style = getSymptomClass(p.h3);
-        const h4Style = getSymptomClass(p.h4);
-        const h5Style = getSymptomClass(p.h5);
+        const h2Style = getSymptomClassForLeaf('h2', p.h2);
+        const h3Style = getSymptomClassForLeaf('h3', p.h3);
+        const h4Style = getSymptomClassForLeaf('h4', p.h4);
+        const h5Style = getSymptomClassForLeaf('h5', p.h5);
 
         row.innerHTML = `
             <div class="plant-num">${p.num}</div>
