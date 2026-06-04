@@ -31,6 +31,7 @@ let isOnline = false;
 let historyData = [];
 let trendChartInstance = null;
 let currentDetailIndex = null; // For modal view/delete
+let applicationsData = []; // Product applications logs
 
 // Config Defaults
 const TOTAL_PLANTS = 10;
@@ -44,6 +45,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Load History from localStorage
     loadHistory();
+
+    // Load Product Applications
+    loadApplications();
+    renderApplicationsList();
+    
+    // Set default date to today for application input
+    const dateInput = document.getElementById("app-date");
+    if (dateInput) {
+        dateInput.value = new Date().toISOString().substring(0, 10);
+    }
 
     // Check Network Connection
     updateNetworkStatus();
@@ -667,6 +678,88 @@ function loadHistory() {
     }
 }
 
+function loadApplications() {
+    const raw = localStorage.getItem("rafiqui_product_applications");
+    if (raw) {
+        applicationsData = JSON.parse(raw);
+    } else {
+        applicationsData = [];
+    }
+}
+
+function saveApplications() {
+    localStorage.setItem("rafiqui_product_applications", JSON.stringify(applicationsData));
+}
+
+function addProductApplication() {
+    const dateInput = document.getElementById("app-date");
+    const productInput = document.getElementById("app-product");
+    
+    if (!dateInput || !productInput || !dateInput.value || !productInput.value.trim()) {
+        return;
+    }
+    
+    const newApp = {
+        id: "app_" + Date.now(),
+        date: dateInput.value,
+        product: productInput.value.trim()
+    };
+    
+    applicationsData.push(newApp);
+    // Sort applications by date descending for UI listing
+    applicationsData.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    saveApplications();
+    renderApplicationsList();
+    
+    // Clear text field
+    productInput.value = "";
+    
+    // Redraw trend chart to show the new event marker
+    renderTrendChart();
+}
+
+function deleteProductApplication(id) {
+    if (confirm("¿Estás seguro de que deseas eliminar este registro de aplicación?")) {
+        applicationsData = applicationsData.filter(app => app.id !== id);
+        saveApplications();
+        renderApplicationsList();
+        renderTrendChart();
+    }
+}
+
+function renderApplicationsList() {
+    const container = document.getElementById("applications-list-container");
+    if (!container) return;
+    
+    container.innerHTML = "";
+    
+    if (applicationsData.length === 0) {
+        container.innerHTML = `<div style="text-align: center; color: var(--text-dim); font-size: 0.75rem; padding: 10px 0;">No hay aplicaciones registradas.</div>`;
+        return;
+    }
+    
+    applicationsData.forEach(app => {
+        const dateParts = app.date.split("-");
+        const formattedDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : app.date;
+        
+        const item = document.createElement("div");
+        item.className = "application-item";
+        item.innerHTML = `
+            <div class="app-item-info">
+                <span class="app-item-prod">${app.product}</span>
+                <span class="app-item-date">${formattedDate}</span>
+            </div>
+            <button class="btn-delete-app" onclick="deleteProductApplication('${app.id}')" title="Eliminar">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                </svg>
+            </button>
+        `;
+        container.appendChild(item);
+    });
+}
+
 function saveHistoryToLocalStorage() {
     localStorage.setItem("rafiqui_suma_bruta_history", JSON.stringify(historyData));
 }
@@ -851,6 +944,14 @@ function renderTrendChart() {
     });
     
     const values = sortedData.map(item => item.suma_bruta_promedio);
+    const candelaValues = sortedData.map(item => item.hojas_promedio !== undefined ? item.hojas_promedio : 0.0);
+
+    const matchedProducts = sortedData.map(item => {
+        if (!item.created_at) return null;
+        const itemDateStr = item.created_at.substring(0, 10);
+        const matches = applicationsData.filter(app => app.date === itemDateStr);
+        return matches.length > 0 ? matches.map(m => m.product).join(", ") : null;
+    });
 
     if (trendChartInstance) {
         trendChartInstance.destroy();
@@ -880,6 +981,49 @@ function renderTrendChart() {
         return;
     }
 
+    // Custom plugin to draw vertical lines for product applications
+    const appLinesPlugin = {
+        id: 'appLines',
+        afterDatasetsDraw(chart) {
+            const { ctx, scales: { x, y } } = chart;
+            ctx.save();
+            
+            const dataset = chart.data.datasets[0];
+            if (!dataset || !dataset.matchedProducts) return;
+            
+            const meta = chart.getDatasetMeta(0);
+            chart.data.labels.forEach((label, index) => {
+                const product = dataset.matchedProducts[index];
+                if (product) {
+                    const point = meta.data[index];
+                    if (point) {
+                        // Draw vertical line
+                        ctx.beginPath();
+                        ctx.strokeStyle = '#ffb300';
+                        ctx.lineWidth = 1.2;
+                        ctx.setLineDash([4, 4]);
+                        ctx.moveTo(point.x, y.top);
+                        ctx.lineTo(point.x, y.bottom);
+                        ctx.stroke();
+                        
+                        // Draw small indicator circle at the top of the line
+                        ctx.fillStyle = '#ffb300';
+                        ctx.beginPath();
+                        ctx.arc(point.x, y.top + 8, 4, 0, 2 * Math.PI);
+                        ctx.fill();
+                        
+                        // Draw product label text rotated or horizontal
+                        ctx.fillStyle = '#ffb300';
+                        ctx.font = 'bold 9px sans-serif';
+                        ctx.textAlign = 'left';
+                        ctx.fillText(` 💊 ${product}`, point.x + 5, y.top + 11);
+                    }
+                }
+            });
+            ctx.restore();
+        }
+    };
+
     trendChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
@@ -895,7 +1039,23 @@ function renderTrendChart() {
                     tension: 0.3,
                     pointBackgroundColor: '#00f2ff',
                     pointBorderColor: '#fff',
-                    pointRadius: 5
+                    pointRadius: 5,
+                    matchedProducts: matchedProducts,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Emisión Foliar (Brun)',
+                    data: candelaValues,
+                    borderColor: '#00ffaa',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0.3,
+                    pointBackgroundColor: '#00ffaa',
+                    pointBorderColor: '#fff',
+                    pointRadius: 4,
+                    yAxisID: 'y1'
                 }
             ]
         },
@@ -904,11 +1064,34 @@ function renderTrendChart() {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    display: false
+                    display: true,
+                    labels: {
+                        color: '#80809b',
+                        boxWidth: 12,
+                        font: {
+                            size: 10
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        afterBody: function(context) {
+                            const index = context[0].dataIndex;
+                            const chart = context[0].chart;
+                            const product = chart.data.datasets[0].matchedProducts ? chart.data.datasets[0].matchedProducts[index] : null;
+                            if (product) {
+                                return `\n💊 Aplicado: ${product}`;
+                            }
+                            return '';
+                        }
+                    }
                 }
             },
             scales: {
                 y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
                     min: 0,
                     max: Math.max(12, Math.max(...values) + 2),
                     grid: {
@@ -916,6 +1099,31 @@ function renderTrendChart() {
                     },
                     ticks: {
                         color: '#80809b'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Suma Bruta',
+                        color: '#00f2ff',
+                        font: { size: 10, weight: 'bold' }
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    min: 0.0,
+                    max: 1.2,
+                    grid: {
+                        drawOnChartArea: false
+                    },
+                    ticks: {
+                        color: '#80809b'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Cigarro (Brun)',
+                        color: '#00ffaa',
+                        font: { size: 10, weight: 'bold' }
                     }
                 },
                 x: {
@@ -930,7 +1138,8 @@ function renderTrendChart() {
                     }
                 }
             }
-        }
+        },
+        plugins: [appLinesPlugin]
     });
 }
 

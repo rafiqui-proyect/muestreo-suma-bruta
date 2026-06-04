@@ -126,6 +126,36 @@
             <div class="card" style="padding: 15px;">
                 <canvas id="trend-chart" style="width: 100%; height: 260px;"></canvas>
             </div>
+
+            <!-- Registro de Aplicaciones de Productos -->
+            <div class="card" style="padding: 15px; margin-top: 15px;">
+                <div class="panel-title" style="margin-bottom: 10px;">Registrar Aplicación de Fungicida</div>
+                <form id="form-application" onsubmit="event.preventDefault(); addProductApplication();" style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; gap: 10px;">
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.75rem; color: var(--text-dim);">Fecha</label>
+                            <input type="date" id="app-date" class="input-field" required style="padding: 8px; font-size: 0.85rem; height: 38px; background-color: #0c0c1b; border: 1px solid var(--border-glass); color: var(--text-light); border-radius: 8px;">
+                        </div>
+                        <div style="flex: 1.5; display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.75rem; color: var(--text-dim);">Producto / Tratamiento</label>
+                            <input type="text" id="app-product" class="input-field" placeholder="Ej: Mancozeb + Aceite" required style="padding: 8px; font-size: 0.85rem; height: 38px; background-color: #0c0c1b; border: 1px solid var(--border-glass); color: var(--text-light); border-radius: 8px;">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary" style="padding: 10px; font-size: 0.85rem; margin-top: 5px;">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="margin-right: 4px; vertical-align: middle;">
+                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                        </svg>
+                        <span style="vertical-align: middle;">Registrar Aplicación</span>
+                    </button>
+                </form>
+
+                <div style="margin-top: 15px;">
+                    <div style="font-size: 0.8rem; font-weight: bold; color: var(--text-dim); margin-bottom: 8px; border-bottom: 1px solid var(--border-glass); padding-bottom: 4px;">Registro de Aplicaciones Recientes</div>
+                    <div id="applications-list-container" class="applications-list" style="max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
+                        <!-- Generado Dinámicamente -->
+                    </div>
+                </div>
+            </div>
             
             <div class="card" style="padding: 15px; margin-top: 15px;">
                 <div class="panel-title" style="margin-bottom: 8px;">Guía de Control (Suma Bruta y Hojas Jóvenes)</div>

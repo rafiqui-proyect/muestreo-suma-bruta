@@ -717,3 +717,56 @@ header {
     border-color: rgba(112, 0, 255, 0.4);
     box-shadow: 0 0 10px rgba(112, 0, 255, 0.2);
 }
+
+/* Product Application Styles */
+.application-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-glass);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    transition: 0.2s;
+}
+
+.application-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.app-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.app-item-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+}
+
+.app-item-prod {
+    font-weight: 700;
+    color: #ffb300; /* Amber yellow accent for products */
+}
+
+.btn-delete-app {
+    background: none;
+    border: none;
+    color: var(--red);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: 0.2s;
+    opacity: 0.7;
+}
+
+.btn-delete-app:hover {
+    background: rgba(255, 77, 77, 0.15);
+    opacity: 1;
+}
