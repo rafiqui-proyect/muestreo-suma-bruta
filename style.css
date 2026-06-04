@@ -129,8 +129,14 @@ header {
     scroll-behavior: smooth;
 }
 
-#view-toma-datos.keyboard-active {
+#view-toma-datos.keyboard-bottom-active {
     padding-bottom: 240px !important;
+    padding-top: 15px !important;
+}
+
+#view-toma-datos.keyboard-top-active {
+    padding-top: 240px !important;
+    padding-bottom: 80px !important;
 }
 
 .tab-content.active {
@@ -601,6 +607,22 @@ header {
 
 .bottom-sheet.open {
     bottom: 0;
+}
+
+/* Floating top keypad style when editing bottom rows */
+.bottom-sheet.keyboard-top {
+    bottom: auto !important;
+    top: -100% !important;
+    border-top: none !important;
+    border-bottom: 2px solid var(--border-glass) !important;
+    border-radius: 0 0 24px 24px !important;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8) !important;
+    padding: calc(15px + env(safe-area-inset-top, 10px)) 16px 12px 16px !important;
+}
+
+.bottom-sheet.keyboard-top.open {
+    top: 0 !important;
+    bottom: auto !important;
 }
 
 .sheet-header {

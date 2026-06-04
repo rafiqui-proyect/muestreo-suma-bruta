@@ -156,11 +156,27 @@ function openLeafKeypad(plantIndex, col) {
     document.getElementById("leaf-keypad-sheet").classList.add("open");
     document.getElementById("candela-keypad-sheet").classList.remove("open");
 
-    // Expand view padding and scroll row to center only if moving to a new plant row
+    // Toggle position classes
     const viewContainer = document.getElementById("view-toma-datos");
-    const isKeyboardAlreadyActive = viewContainer && viewContainer.classList.contains("keyboard-active");
-    if (viewContainer) {
-        viewContainer.classList.add("keyboard-active");
+    const leafSheet = document.getElementById("leaf-keypad-sheet");
+    const candelaSheet = document.getElementById("candela-keypad-sheet");
+    
+    const isKeyboardAlreadyActive = viewContainer && (viewContainer.classList.contains("keyboard-top-active") || viewContainer.classList.contains("keyboard-bottom-active"));
+
+    if (plantIndex >= 5) {
+        leafSheet.classList.add("keyboard-top");
+        candelaSheet.classList.add("keyboard-top");
+        if (viewContainer) {
+            viewContainer.classList.remove("keyboard-bottom-active");
+            viewContainer.classList.add("keyboard-top-active");
+        }
+    } else {
+        leafSheet.classList.remove("keyboard-top");
+        candelaSheet.classList.remove("keyboard-top");
+        if (viewContainer) {
+            viewContainer.classList.remove("keyboard-top-active");
+            viewContainer.classList.add("keyboard-bottom-active");
+        }
     }
     
     const shouldScroll = !isKeyboardAlreadyActive || prevPlantIndex !== plantIndex;
@@ -168,7 +184,7 @@ function openLeafKeypad(plantIndex, col) {
         setTimeout(() => {
             const activeRow = document.getElementById(`plant-row-${plantIndex}`);
             if (activeRow) {
-                activeRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                activeRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         }, 80);
     }
@@ -190,11 +206,27 @@ function openCandelaKeypad(plantIndex, col) {
     document.getElementById("candela-keypad-sheet").classList.add("open");
     document.getElementById("leaf-keypad-sheet").classList.remove("open");
 
-    // Expand view padding and scroll row to center only if moving to a new plant row
+    // Toggle position classes
     const viewContainer = document.getElementById("view-toma-datos");
-    const isKeyboardAlreadyActive = viewContainer && viewContainer.classList.contains("keyboard-active");
-    if (viewContainer) {
-        viewContainer.classList.add("keyboard-active");
+    const leafSheet = document.getElementById("leaf-keypad-sheet");
+    const candelaSheet = document.getElementById("candela-keypad-sheet");
+    
+    const isKeyboardAlreadyActive = viewContainer && (viewContainer.classList.contains("keyboard-top-active") || viewContainer.classList.contains("keyboard-bottom-active"));
+
+    if (plantIndex >= 5) {
+        leafSheet.classList.add("keyboard-top");
+        candelaSheet.classList.add("keyboard-top");
+        if (viewContainer) {
+            viewContainer.classList.remove("keyboard-bottom-active");
+            viewContainer.classList.add("keyboard-top-active");
+        }
+    } else {
+        leafSheet.classList.remove("keyboard-top");
+        candelaSheet.classList.remove("keyboard-top");
+        if (viewContainer) {
+            viewContainer.classList.remove("keyboard-top-active");
+            viewContainer.classList.add("keyboard-bottom-active");
+        }
     }
     
     const shouldScroll = !isKeyboardAlreadyActive || prevPlantIndex !== plantIndex;
@@ -202,7 +234,7 @@ function openCandelaKeypad(plantIndex, col) {
         setTimeout(() => {
             const activeRow = document.getElementById(`plant-row-${plantIndex}`);
             if (activeRow) {
-                activeRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                activeRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         }, 80);
     }
@@ -216,9 +248,14 @@ function closeKeypad() {
 
     // Reset view padding
     const viewContainer = document.getElementById("view-toma-datos");
+    const leafSheet = document.getElementById("leaf-keypad-sheet");
+    const candelaSheet = document.getElementById("candela-keypad-sheet");
     if (viewContainer) {
-        viewContainer.classList.remove("keyboard-active");
+        viewContainer.classList.remove("keyboard-bottom-active");
+        viewContainer.classList.remove("keyboard-top-active");
     }
+    if (leafSheet) leafSheet.classList.remove("keyboard-top");
+    if (candelaSheet) candelaSheet.classList.remove("keyboard-top");
 }
 
 function clearActiveHighlight() {

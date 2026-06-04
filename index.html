@@ -200,30 +200,23 @@
                 <span id="leaf-keypad-title" class="sheet-title">Planta X - Hoja Y</span>
                 <span class="sheet-close" onclick="closeKeypad()">&times;</span>
             </div>
-            <div class="grid-keypad">
+            <div class="grid-keypad" style="grid-template-columns: repeat(4, 1fr);">
                 <!-- Healthy Stage -->
-                <button class="key-btn sana" onclick="inputSymptom('0')">0 (Sana)</button>
+                <button class="key-btn sana" style="grid-column: span 4;" onclick="inputSymptom('0')">0 (Sana)</button>
                 
-                <!-- Stages 1 to 5 with +/- -->
+                <!-- Stages 1 to 5 in 4 columns -->
                 <button class="key-btn" onclick="inputSymptom('1-')">1-</button>
                 <button class="key-btn" onclick="inputSymptom('1+')">1+</button>
-                <button class="key-btn" style="visibility: hidden;"></button> <!-- Spacer -->
-                
                 <button class="key-btn" onclick="inputSymptom('2-')">2-</button>
                 <button class="key-btn" onclick="inputSymptom('2+')">2+</button>
-                <button class="key-btn" style="visibility: hidden;"></button> <!-- Spacer -->
                 
                 <button class="key-btn" onclick="inputSymptom('3-')">3-</button>
                 <button class="key-btn" onclick="inputSymptom('3+')">3+</button>
-                <button class="key-btn" style="visibility: hidden;"></button> <!-- Spacer -->
-                
                 <button class="key-btn" onclick="inputSymptom('4-')">4-</button>
                 <button class="key-btn" onclick="inputSymptom('4+')">4+</button>
-                <button class="key-btn" style="visibility: hidden;"></button> <!-- Spacer -->
                 
-                <button class="key-btn" onclick="inputSymptom('5-')">5-</button>
-                <button class="key-btn" onclick="inputSymptom('5+')">5+</button>
-                <button class="key-btn" style="visibility: hidden;"></button> <!-- Spacer -->
+                <button class="key-btn" style="grid-column: span 2;" onclick="inputSymptom('5-')">5-</button>
+                <button class="key-btn" style="grid-column: span 2;" onclick="inputSymptom('5+')">5+</button>
             </div>
         </div>
 
