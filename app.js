@@ -78,8 +78,27 @@ document.addEventListener("DOMContentLoaded", () => {
     // Register Service Worker for PWA offline capability
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker registered successfully:', reg.scope))
+            .then(reg => {
+                console.log('Service Worker registered successfully:', reg.scope);
+                
+                reg.addEventListener('updatefound', () => {
+                    const newWorker = reg.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            console.log('Nueva versión instalada. Activando...');
+                        }
+                    });
+                });
+            })
             .catch(err => console.error('Service Worker registration failed:', err));
+
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!refreshing) {
+                refreshing = true;
+                window.location.reload();
+            }
+        });
     }
 });
 
@@ -2406,5 +2425,267 @@ async function autoSyncUnsynced(showUserAlerts = false) {
 
     if (successCount > 0 && showUserAlerts) {
         alert(`¡Sincronización completa! Se subieron ${successCount} registros a la nube.`);
+    }
+}
+
+// ── EXPORT AND SHARE FUNCTIONS ──
+
+// Downloads a chart as a PNG image
+function downloadChartAsImage(canvasId, filename) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    try {
+        const imageURI = canvas.toDataURL("image/png");
+        const link = document.createElement("a");
+        link.download = `${filename}_${Date.now()}.png`;
+        link.href = imageURI;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (err) {
+        console.error("Error al descargar la imagen del gráfico:", err);
+        alert("No se pudo descargar la imagen en este navegador.");
+    }
+}
+
+// Shares a chart as a PNG image via native share (WhatsApp, etc.)
+async function shareChartAsImage(canvasId, filename) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    try {
+        canvas.toBlob(async (blob) => {
+            if (!blob) {
+                downloadChartAsImage(canvasId, filename);
+                return;
+            }
+            const file = new File([blob], `${filename}.png`, { type: "image/png" });
+            
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: `Gráfico ${filename}`,
+                    text: `Comparto la gráfica de campo de Rafiqui.`
+                });
+            } else {
+                downloadChartAsImage(canvasId, filename);
+                alert("La compartición directa no está disponible. El gráfico se ha descargado a tu dispositivo.");
+            }
+        }, "image/png");
+    } catch (err) {
+        console.error("Error al compartir imagen:", err);
+        downloadChartAsImage(canvasId, filename);
+    }
+}
+
+// Generates a professional PDF Report with metadata, KPIs, charts, and calculations table
+async function generatePDFReport() {
+    const finca = document.getElementById("input-finca").value || "Sin Finca";
+    const lote = document.getElementById("input-lote").value || "Sin Lote";
+    const evaluador = document.getElementById("input-evaluador").value || "Sin Evaluador";
+    const reportDate = new Date().toLocaleDateString("es-ES", {
+        year: 'numeric', month: 'long', day: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    });
+
+    const avgSB = document.getElementById("avg-sb-value").innerText || "0.0";
+    const leavesText = document.getElementById("leaves-average-text").innerText || "";
+    
+    let avgHT = "0.0";
+    let avgHvle = "0.0";
+    let avgCandela = "0.00";
+    
+    if (leavesText.includes("Hojas Prom:")) {
+        const parts = leavesText.split("|");
+        avgHT = parts[0].replace("Hojas Prom:", "").trim();
+        avgHvle = parts[1].replace("H+VLE Prom:", "").trim();
+        avgCandela = parts[2].replace("Candela Prom:", "").trim();
+    }
+
+    let trendImg = "", rpImg = "", s7Img = "", s11Img = "";
+    try {
+        const trendCanvas = document.getElementById("trend-chart");
+        if (trendCanvas) trendImg = trendCanvas.toDataURL("image/png");
+        
+        const rpCanvas = document.getElementById("sanidad-trend-chart");
+        if (rpCanvas) rpImg = rpCanvas.toDataURL("image/png");
+        
+        const s7Canvas = document.getElementById("sanidad-s7-trend-chart");
+        if (s7Canvas) s7Img = s7Canvas.toDataURL("image/png");
+        
+        const s11Canvas = document.getElementById("sanidad-s11-trend-chart");
+        if (s11Canvas) s11Img = s11Canvas.toDataURL("image/png");
+    } catch (err) {
+        console.error("Error al convertir gráficos a imágenes:", err);
+    }
+
+    const referenceTable = document.getElementById("calc-reference-table-body");
+    let tableRowsHTML = "";
+    if (referenceTable && referenceTable.children.length > 0) {
+        const rows = referenceTable.children;
+        for (let r of rows) {
+            const cells = r.children;
+            if (cells.length === 7) {
+                tableRowsHTML += `
+                    <tr style="border-bottom: 1px solid #dee2e6;">
+                        <td style="padding: 8px; border: 1px solid #dee2e6; font-weight: bold; background: #fdfdfd;">${cells[0].innerText}</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">${cells[1].innerText}</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">${cells[2].innerText}</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">${cells[3].innerText}</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">${cells[4].innerText}</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">${cells[5].innerText}</td>
+                        <td style="padding: 8px; border: 1px solid #dee2e6;">${cells[6].innerText}</td>
+                    </tr>
+                `;
+            }
+        }
+    } else {
+        tableRowsHTML = `<tr><td colspan="7" style="padding: 12px; color: #888;">No hay muestreos recientes cargados en la tabla de cálculos.</td></tr>`;
+    }
+
+    const reportContainer = document.createElement("div");
+    reportContainer.id = "pdf-report-container";
+    reportContainer.style.position = "absolute";
+    reportContainer.style.left = "-9999px";
+    reportContainer.style.top = "-9999px";
+    reportContainer.style.width = "750px";
+
+    reportContainer.innerHTML = `
+        <div style="padding: 30px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #212529; background: #ffffff; line-height: 1.5;">
+            <div style="border-bottom: 3px solid #00f2ff; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 style="margin: 0; font-size: 1.8rem; color: #0b0b1a; font-weight: 800; letter-spacing: -0.5px;">RAFIQUI <span style="color: #00bcd4;">PRO</span></h1>
+                    <p style="margin: 3px 0 0 0; font-size: 0.82rem; color: #6c757d;">Sistema Inteligente de Monitoreo de Sigatoka Negra</p>
+                </div>
+                <div style="text-align: right;">
+                    <span style="font-size: 0.85rem; font-weight: 700; background: #e0f7fa; color: #006064; padding: 6px 12px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Reporte Ejecutivo</span>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 25px; background: #f8f9fa; padding: 15px; border-radius: 10px; font-size: 0.92rem; border: 1px solid #e9ecef;">
+                <div><strong>🚜 Finca:</strong> ${finca}</div>
+                <div><strong>📍 Lote:</strong> ${lote}</div>
+                <div><strong>👨‍🌾 Evaluador:</strong> ${evaluador}</div>
+                <div><strong>📅 Generación:</strong> ${reportDate}</div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 30px; text-align: center;">
+                <div style="background: #e0f7fa; padding: 12px; border-radius: 8px; border: 1px solid #b2ebf2; box-shadow: 0 2px 4px rgba(0,96,100,0.04);">
+                    <div style="font-size: 0.72rem; color: #006064; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Suma Bruta Prom</div>
+                    <div style="font-size: 1.5rem; font-weight: 800; color: #006064; margin-top: 5px;">${avgSB}</div>
+                </div>
+                <div style="background: #f3e5f5; padding: 12px; border-radius: 8px; border: 1px solid #e1bee7; box-shadow: 0 2px 4px rgba(74,20,140,0.04);">
+                    <div style="font-size: 0.72rem; color: #4a148c; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Hojas Prom</div>
+                    <div style="font-size: 1.5rem; font-weight: 800; color: #4a148c; margin-top: 5px;">${avgHT}</div>
+                </div>
+                <div style="background: #fce4ec; padding: 12px; border-radius: 8px; border: 1px solid #f8bbd0; box-shadow: 0 2px 4px rgba(136,14,79,0.04);">
+                    <div style="font-size: 0.72rem; color: #880e4f; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">H+VLE Prom</div>
+                    <div style="font-size: 1.5rem; font-weight: 800; color: #880e4f; margin-top: 5px;">${avgHvle}</div>
+                </div>
+                <div style="background: #e8f5e9; padding: 12px; border-radius: 8px; border: 1px solid #c8e6c9; box-shadow: 0 2px 4px rgba(27,94,32,0.04);">
+                    <div style="font-size: 0.72rem; color: #1b5e20; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Candela Prom</div>
+                    <div style="font-size: 1.5rem; font-weight: 800; color: #1b5e20; margin-top: 5px;">${avgCandela}</div>
+                </div>
+            </div>
+            
+            <h2 style="font-size: 1.15rem; border-bottom: 2px solid #e9ecef; padding-bottom: 6px; margin-bottom: 15px; color: #343a40; font-weight: 700;">Gráficas de Tendencia Histórica</h2>
+            
+            <div style="display: flex; flex-direction: column; gap: 25px;">
+                ${trendImg ? `
+                <div style="border: 1px solid #dee2e6; padding: 15px; border-radius: 8px; background: #fafafa;">
+                    <div style="font-size: 0.85rem; font-weight: 700; color: #495057; margin-bottom: 10px;">📊 1. Evolución de la Suma Bruta y Hojas en el Lote</div>
+                    <img src="${trendImg}" style="width: 100%; height: auto; max-height: 280px; display: block; margin: 0 auto; border-radius: 4px;" />
+                </div>
+                ` : ''}
+
+                ${rpImg ? `
+                <div style="border: 1px solid #dee2e6; padding: 15px; border-radius: 8px; background: #fafafa; page-break-before: always;">
+                    <div style="font-size: 0.85rem; font-weight: 700; color: #495057; margin-bottom: 10px;">📊 2. Evolución de la Sanidad Foliar (Recién Parida)</div>
+                    <img src="${rpImg}" style="width: 100%; height: auto; max-height: 240px; display: block; margin: 0 auto; border-radius: 4px;" />
+                </div>
+                ` : ''}
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    ${s7Img ? `
+                    <div style="border: 1px solid #dee2e6; padding: 10px; border-radius: 8px; background: #fafafa;">
+                        <div style="font-size: 0.78rem; font-weight: 700; color: #495057; margin-bottom: 8px;">📊 3. Sanidad Semana 7</div>
+                        <img src="${s7Img}" style="width: 100%; height: auto; max-height: 180px; display: block; margin: 0 auto; border-radius: 4px;" />
+                    </div>
+                    ` : ''}
+                    
+                    ${s11Img ? `
+                    <div style="border: 1px solid #dee2e6; padding: 10px; border-radius: 8px; background: #fafafa;">
+                        <div style="font-size: 0.78rem; font-weight: 700; color: #495057; margin-bottom: 8px;">📊 4. Sanidad Semana 11</div>
+                        <img src="${s11Img}" style="width: 100%; height: auto; max-height: 180px; display: block; margin: 0 auto; border-radius: 4px;" />
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+
+            <h2 style="font-size: 1.15rem; border-bottom: 2px solid #e9ecef; padding-bottom: 6px; margin-top: 30px; margin-bottom: 15px; color: #343a40; font-weight: 700; page-break-before: always;">Detalle de Cálculos por Planta (Lote Activo)</h2>
+            
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem; text-align: center; border: 1px solid #dee2e6;">
+                <thead>
+                    <tr style="background: #f1f3f5; font-weight: bold; border-bottom: 2px solid #dee2e6; color: #495057;">
+                        <th style="padding: 10px; border: 1px solid #dee2e6;">Planta</th>
+                        <th style="padding: 10px; border: 1px solid #dee2e6;">EE</th>
+                        <th style="padding: 10px; border: 1px solid #dee2e6;">COE</th>
+                        <th style="padding: 10px; border: 1px solid #dee2e6;">Candela</th>
+                        <th style="padding: 10px; border: 1px solid #dee2e6;">COE-Candela</th>
+                        <th style="padding: 10px; border: 1px solid #dee2e6;">HT</th>
+                        <th style="padding: 10px; border: 1px solid #dee2e6;">H+VLE</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRowsHTML}
+                </tbody>
+            </table>
+            
+            <div style="margin-top: 40px; text-align: center; font-size: 0.75rem; color: #868e96; border-top: 1px solid #e9ecef; padding-top: 15px;">
+                Este reporte técnico fue generado electrónicamente desde la aplicación móvil de <strong>Rafiqui Pro</strong>.
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(reportContainer);
+
+    const opt = {
+        margin:       [10, 10, 10, 10],
+        filename:     `Reporte_Suma_Bruta_${lote.replace(/\s+/g, '_')}_${Date.now()}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    try {
+        const pdfWorker = html2pdf().from(reportContainer).set(opt);
+        
+        if (navigator.canShare && typeof File !== 'undefined') {
+            const pdfBlob = await pdfWorker.output('blob');
+            const file = new File([pdfBlob], opt.filename, { type: 'application/pdf' });
+            
+            if (navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: `Reporte Muestreo Lote ${lote}`,
+                    text: `Comparto el reporte ejecutivo de monitoreo de Suma Bruta de la finca ${finca}.`
+                });
+            } else {
+                await pdfWorker.save();
+            }
+        } else {
+            await pdfWorker.save();
+        }
+    } catch (error) {
+        console.error("Error al generar o compartir el reporte PDF:", error);
+        alert("Ocurrió un error al generar el reporte PDF. Se disparará la descarga clásica.");
+        try {
+            await html2pdf().from(reportContainer).set(opt).save();
+        } catch (e) {
+            console.error("Fallback save failed too:", e);
+        }
+    } finally {
+        document.body.removeChild(reportContainer);
     }
 }
