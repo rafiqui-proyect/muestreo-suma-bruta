@@ -774,6 +774,16 @@ function calculateTotals() {
         }
     });
 
+    let totalCandela = 0.0;
+    let countCandela = 0;
+    plantData.forEach(row => {
+        if (row.candela !== "" && row.candela !== undefined && row.candela !== null) {
+            totalCandela += parseFloat(row.candela);
+            countCandela++;
+        }
+    });
+    const avgCandela = countCandela > 0 ? (totalCandela / countCandela) : 0.0;
+
     const avgCoeCand = countCoeCand > 0 ? (totalCoeCand / countCoeCand) : 0.0;
     const sumaBruta = avgCoeCand * 10;
     
@@ -784,7 +794,7 @@ function calculateTotals() {
     const avgSBEl = document.getElementById("avg-sb-value");
     avgSBEl.innerText = sumaBruta.toFixed(1);
 
-    document.getElementById("leaves-average-text").innerText = `Hojas Prom: ${avgHT.toFixed(1)} | H+VLE Prom: ${avgHvle.toFixed(1)}`;
+    document.getElementById("leaves-average-text").innerText = `Hojas Prom: ${avgHT.toFixed(1)} | H+VLE Prom: ${avgHvle.toFixed(1)} | Candela Prom: ${avgCandela.toFixed(2)}`;
 
     const summaryCard = document.getElementById("sb-summary-card");
     const statusBadge = document.getElementById("sb-status-badge");
@@ -1481,6 +1491,21 @@ function renderTrendChart() {
     const values = sortedData.map(item => item.suma_bruta_promedio);
     const htValues = sortedData.map(item => item.hojas_promedio !== undefined ? item.hojas_promedio : 0.0);
     const hvleValues = sortedData.map(item => item.hvle_promedio !== undefined ? item.hvle_promedio : 0.0);
+    const candelaValues = sortedData.map(item => {
+        if (item.detalles_json && item.detalles_json.plants) {
+            const plants = item.detalles_json.plants;
+            let sum = 0;
+            let count = 0;
+            plants.forEach(p => {
+                if (p.candela !== "" && p.candela !== undefined && p.candela !== null) {
+                    sum += parseFloat(p.candela);
+                    count++;
+                }
+            });
+            return count > 0 ? parseFloat((sum / count).toFixed(2)) : 0.0;
+        }
+        return 0.0;
+    });
 
     const matchedProducts = sortedData.map(item => {
         if (!item.created_at) return null;
@@ -1599,6 +1624,19 @@ function renderTrendChart() {
                     pointBorderColor: '#fff',
                     pointRadius: 5,
                     yAxisID: 'y1'
+                },
+                {
+                    label: 'Desarrollo Candela Promedio',
+                    data: candelaValues,
+                    borderColor: '#00ffaa',
+                    backgroundColor: 'rgba(0, 255, 170, 0.08)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.3,
+                    pointBackgroundColor: '#00ffaa',
+                    pointBorderColor: '#fff',
+                    pointRadius: 5,
+                    yAxisID: 'y2'
                 }
             ]
         },
@@ -1684,7 +1722,7 @@ function renderTrendChart() {
                 y1: {
                     type: 'linear',
                     display: true,
-                    position: 'left',
+                    position: 'right',
                     min: 0.0,
                     max: 20.0,
                     grid: {
@@ -1697,6 +1735,25 @@ function renderTrendChart() {
                         display: true,
                         text: 'Hojas Promedio',
                         color: '#b080ff',
+                        font: { size: 10, weight: 'bold' }
+                    }
+                },
+                y2: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    min: 0.0,
+                    max: 1.0,
+                    grid: {
+                        drawOnChartArea: false
+                    },
+                    ticks: {
+                        color: '#00ffaa'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Desarrollo Candela',
+                        color: '#00ffaa',
                         font: { size: 10, weight: 'bold' }
                     }
                 },
