@@ -37,6 +37,7 @@ let sanidadChartInstance = null;
 let sanidadS7ChartInstance = null;
 let sanidadS11ChartInstance = null;
 let currentDetailIndex = null; // For modal view/delete
+let currentRefTableIndex = null; // To avoid redundant updates to the reference table
 let applicationsData = []; // Product applications logs
 
 // Config Defaults
@@ -413,14 +414,19 @@ function updateReferenceTableOnTabChange() {
         plantData = plants;
         renderCalcReferenceTable(totalCoeCand, totalHT, totalHvle, avgCoeCand, sumaBruta, avgHT, avgHvle);
         plantData = activePlantDataBackup;
+        currentRefTableIndex = 0; // represent the latest record
     } else {
         // Fallback to active empty/active sheet calculation totals
         calculateTotals();
+        currentRefTableIndex = null;
     }
 }
 
 // Dynamically updates the reference table using a specific history item index
 function updateReferenceTableForIndex(index) {
+    if (currentRefTableIndex === index) return; // Skip if already loaded
+    currentRefTableIndex = index;
+
     if (historyData && historyData[index]) {
         const item = historyData[index];
         const plants = item.detalles_json.plants;
@@ -1766,7 +1772,7 @@ function renderTrendChart() {
                     }
                 }
             },
-            onHover: (event, chartElements) => {
+            onClick: (event, chartElements) => {
                 if (chartElements && chartElements.length > 0) {
                     const dataIndex = chartElements[0].index;
                     // sortedData is [...historyData].reverse(), so the index mapping from chart to historyData is:

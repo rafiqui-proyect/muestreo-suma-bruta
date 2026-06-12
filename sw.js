@@ -1,4 +1,4 @@
-const CACHE_NAME = 'suma-bruta-v20';
+const CACHE_NAME = 'suma-bruta-v21';
 const ASSETS = [
   './',
   './index.html',
