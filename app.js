@@ -1087,6 +1087,99 @@ function saveCurrentMuestreo() {
 }
 
 // Local Storage Helpers
+function populateFincaDropdown(selectedVal = null) {
+    const fincaSelect = document.getElementById("input-finca");
+    if (!fincaSelect) return;
+    
+    const fincasSet = new Set();
+    fincasSet.add("Finca Santa Elena");
+    fincasSet.add("Finca La Esperanza");
+    fincasSet.add("Finca San José");
+    
+    const rawCustom = localStorage.getItem("rafiqui_custom_fincas");
+    if (rawCustom) {
+        try {
+            const customList = JSON.parse(rawCustom);
+            if (Array.isArray(customList)) {
+                customList.forEach(f => {
+                    if (f && f.trim() !== "") fincasSet.add(f.trim());
+                });
+            }
+        } catch (e) {
+            console.error("Error parsing custom fincas:", e);
+        }
+    }
+    
+    if (historyData && Array.isArray(historyData)) {
+        historyData.forEach(item => {
+            if (item.finca && item.finca.trim() !== "") {
+                fincasSet.add(item.finca.trim());
+            }
+        });
+    }
+    
+    const previousValue = selectedVal || fincaSelect.value || localStorage.getItem("rafiqui_last_selected_finca");
+    fincaSelect.innerHTML = "";
+    
+    const sortedFincas = Array.from(fincasSet).sort();
+    sortedFincas.forEach(finca => {
+        const opt = document.createElement("option");
+        opt.value = finca;
+        opt.innerText = finca;
+        fincaSelect.appendChild(opt);
+    });
+    
+    const newOpt = document.createElement("option");
+    newOpt.value = "NEW_FINCA";
+    newOpt.innerText = "+ Crear Nueva Finca...";
+    fincaSelect.appendChild(newOpt);
+    
+    if (previousValue && previousValue !== "NEW_FINCA" && fincasSet.has(previousValue)) {
+        fincaSelect.value = previousValue;
+    } else {
+        fincaSelect.value = sortedFincas[0];
+    }
+    
+    localStorage.setItem("rafiqui_last_selected_finca", fincaSelect.value);
+}
+
+function handleFincaSelectChange() {
+    const fincaSelect = document.getElementById("input-finca");
+    if (!fincaSelect) return;
+    
+    if (fincaSelect.value === "NEW_FINCA") {
+        const newName = prompt("Introduce el nombre de la nueva finca:");
+        if (newName && newName.trim() !== "") {
+            const cleanName = newName.trim();
+            
+            let customFincas = [];
+            const raw = localStorage.getItem("rafiqui_custom_fincas");
+            if (raw) {
+                try {
+                    customFincas = JSON.parse(raw);
+                } catch(e) {
+                    customFincas = [];
+                }
+            }
+            if (!customFincas.includes(cleanName)) {
+                customFincas.push(cleanName);
+                localStorage.setItem("rafiqui_custom_fincas", JSON.stringify(customFincas));
+            }
+            
+            populateFincaDropdown(cleanName);
+        } else {
+            const rawLastSelected = localStorage.getItem("rafiqui_last_selected_finca");
+            if (rawLastSelected && fincaSelect.querySelector(`option[value="${rawLastSelected}"]`)) {
+                fincaSelect.value = rawLastSelected;
+            } else {
+                fincaSelect.value = fincaSelect.options[0].value;
+            }
+        }
+    } else {
+        localStorage.setItem("rafiqui_last_selected_finca", fincaSelect.value);
+    }
+}
+
 function loadHistory() {
     userRole = localStorage.getItem("rafiqui_user_role") || "evaluador";
     const selectRole = document.getElementById("select-role");
@@ -1121,6 +1214,7 @@ function loadHistory() {
             }
         }
     }
+    populateFincaDropdown();
 }
 
 function loadApplications() {
@@ -2951,6 +3045,7 @@ async function fetchGlobalHistoryFromSupabase(showFeedback = false) {
         historyData = combined;
         
         populateEngineerFilters();
+        populateFincaDropdown();
         
         renderHistoryList();
         

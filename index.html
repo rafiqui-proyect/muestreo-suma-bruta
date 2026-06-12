@@ -48,10 +48,11 @@
                 <div class="form-grid">
                     <div class="input-group">
                         <label for="input-finca">Finca</label>
-                        <select id="input-finca" class="input-field" style="background-color: #0c0c1b; border: 1px solid var(--border-glass);">
+                        <select id="input-finca" class="input-field" onchange="handleFincaSelectChange()" style="background-color: #0c0c1b; border: 1px solid var(--border-glass);">
                             <option value="Finca Santa Elena">Finca Santa Elena</option>
                             <option value="Finca La Esperanza">Finca La Esperanza</option>
                             <option value="Finca San José">Finca San José</option>
+                            <option value="NEW_FINCA">+ Crear Nueva Finca...</option>
                         </select>
                     </div>
                     <div class="input-group">
